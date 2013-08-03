@@ -1,6 +1,9 @@
 #!/usr/bin/python
 import cherrypy
 from pyorgtree.pyorgtree import *
+import os.path
+import time
+import cPickle
 
 class FormatSubtree(object):
     subtree = None
@@ -22,7 +25,7 @@ class FormatSubtree(object):
             parent = subtree.get_parent()
             out += '<div id="subtree">'
             if subtree.get_header():
-                out += '<h1><div id="header">%s</div></h1>' % subtree.get_header().get_title() 
+                out += '<h1><div id="header">%s: %s</div></h1>' % (subtree.get_header().get_hash(), subtree.get_header().get_title())
             out += '<pre>'
             out += subtree.get_data()
             out += '</pre>'
@@ -57,6 +60,12 @@ class FormatSubtree(object):
         return out
 
 class OrgWebServer(object):
+    orgfile = None
+    cache = None
+    def __init__(self, filename):
+        self.orgfile = filename
+        self.cache = 'cache/' + self.orgfile.split(os.sep)[-1] + '.cache'
+        
     def css(self):
         try:
             inp = open('styles/main.css', 'r')
@@ -69,14 +78,31 @@ class OrgWebServer(object):
     
     def index(self, tree_hash):
         tree = OrgTree()
-        tree.read_from_file('/home/arilou649/org/personal.org', 0, 0)
+        if not os.path.exists(self.cache):
+            tree.read_from_file(self.orgfile, 0, 0)
+            if not tree.pickle_dump(self.cache):
+                print "Error dumping tree to file: %s" % self.cache
+        else:
+            cache_time = time.ctime(os.path.getmtime(self.cache))
+            orgfile_time = time.ctime(os.path.getmtime(self.orgfile))
+            if orgfile_time > cache_time:
+                tree.read_from_file(self.orgfile, 0, 0)
+                if not tree.pickle_dump(self.cache):
+                    print "Error dumping tree to file: %s" % self.cache
+            else:
+                if not tree.pickle_load(self.cache):
+                    print "Error loading tree from file: %s" % self.cache
+                
         subtree = tree.get_tree_dict()[tree_hash]
         fs = FormatSubtree(subtree)
-        return fs.get_html()
+        result = fs.get_html()
+        tree = None
+        return result
+        
     index.exposed = True
 
 if __name__ == "__main__":
     cherrypy.config.update({'server.socket_host': 'localhost', 
                             'server.socket_port': 8000, 
                             })
-    cherrypy.quickstart(OrgWebServer())
+    cherrypy.quickstart(OrgWebServer('/home/arilou649/org/personal.org'))
