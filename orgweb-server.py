@@ -61,15 +61,27 @@ class FormatSubtree(object):
         return out
 
 class OrgWebServer(object):
+    
     orgfile = None
     cache = None
+    stylecss = "styles/main.css"
+    cachedir = "cache/"
+    
     def __init__(self, filename):
         self.orgfile = filename
+        if not os.path.exists(self.cachedir):
+            try:
+                os.mkdir(self.cachedir)
+            except OSError:
+                sys.stderr.write("Can't create cache directory!")
+                sys.exit(1)
         self.cache = 'cache/' + self.orgfile.split(os.sep)[-1] + '.cache'
+        if os.path.exists(self.cache):
+            os.unlink(self.cache)
         
     def css(self):
         try:
-            inp = open('styles/main.css', 'r')
+            inp = open(self.stylecss, 'r')
             data = inp.read()
             inp.close()
             return data
@@ -103,7 +115,10 @@ class OrgWebServer(object):
     index.exposed = True
 
 if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print "Usage: orgweb-server.py </path/to/file.org> <port_number>"
+        sys.exit(1)
     cherrypy.config.update({'server.socket_host': 'localhost', 
-                            'server.socket_port': 8000, 
+                            'server.socket_port': int(sys.argv[2]), 
                             })
     cherrypy.quickstart(OrgWebServer(sys.argv[1]))
