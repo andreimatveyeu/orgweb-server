@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import cherrypy
 from pyorgtree.pyorgtree import *
+import sys
 import os.path
 import time
 import cPickle
@@ -105,4 +106,4 @@ if __name__ == "__main__":
     cherrypy.config.update({'server.socket_host': 'localhost', 
                             'server.socket_port': 8000, 
                             })
-    cherrypy.quickstart(OrgWebServer('/home/arilou649/org/personal.org'))
+    cherrypy.quickstart(OrgWebServer(sys.argv[1]))
