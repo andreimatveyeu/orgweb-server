@@ -6,6 +6,23 @@ import os.path
 import time
 import cPickle
 
+class FormatTreeBody(object):
+    data = None
+    def __init__(self, data):
+        self.data = data
+    def get_html(self):
+        hash_link_pattern = re.compile(r'(?P<link>h:[a-z0-9]{5})')
+        tokens = self.data.split(' ')
+        result = ""
+        for token in tokens:
+            if hash_link_pattern.match(token):
+                hash_tree = hash_link_pattern.match(token).group('link')
+                if hash_tree:
+                    hash_tree = hash_tree[2:]
+                    token = hash_link_pattern.sub('<a href="?tree_hash=%s">%s</a>' % (hash_tree, hash_tree), token)
+            result += token + " "
+        return result
+
 class FormatSubtree(object):
     subtree = None
     def __init__(self, subtree):
@@ -28,7 +45,8 @@ class FormatSubtree(object):
             if subtree.get_header():
                 out += '<h1><div id="header">%s: %s</div></h1>' % (subtree.get_header().get_hash(), subtree.get_header().get_title())
             out += '<pre>'
-            out += subtree.get_data()
+            ftb = FormatTreeBody(subtree.get_data())
+            out += ftb.get_html()
             out += '</pre>'
             children = subtree.get_children()
             if children:

@@ -1,13 +1,11 @@
 body { 
-       background: #ccc;
-       }
+background: #ccc;
+}
 
 #wrapper { 
-
 width: 80%;
 margin-left: auto;
 margin-right: auto;
-
  }
 
 #tree_navigation { 
@@ -29,3 +27,12 @@ font-size: 80%;
 font-size: 70%;
 text-align: center;
  }
+
+
+
+.small, .sub, .sup {  
+     font-size: .83em;
+ }
+
+.sub {  vertical-align: sub } 
+.sup {  vertical-align: super } 
