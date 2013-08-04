@@ -78,12 +78,13 @@ class FormatSubtree(object):
         out += '</body>'
         return out
 
-class OrgWebServer(object):
-    
+class OrgCache(object):
+
     orgfile = None
     cache = None
-    stylecss = "styles/main.css"
     cachedir = "cache/"
+    cache_time = None 
+    subtree = None
     
     def __init__(self, filename):
         self.orgfile = filename
@@ -94,9 +95,47 @@ class OrgWebServer(object):
                 sys.stderr.write("Can't create cache directory!")
                 sys.exit(1)
         self.cache = 'cache/' + self.orgfile.split(os.sep)[-1] + '.cache'
-        if os.path.exists(self.cache):
-            os.unlink(self.cache)
+        if not self._load_subtree():
+            sys.stderr.write("Can't load subtree!")
+            sys.exit(1)
+        self.cachetime = time.ctime(os.path.getmtime(self.cache))
+
+    def _org_file_more_uptodate(self):
+        orgfile_time = time.ctime(os.path.getmtime(self.orgfile))
+        if orgfile_time > self.cache_time:
+            return True
+        else:
+            return False
         
+    def _load_subtree(self):
+        self.subtree = OrgTree()
+        if not os.path.exists(self.cache):
+            self.subtree.read_from_file(self.orgfile, 0, 0)
+            if not self.subtree.pickle_dump(self.cache):
+                print "Error dumping tree to file: %s" % self.cache
+                return False
+            self.cache_time = time.ctime(os.path.getmtime(self.cache))
+        else:
+            if self._org_file_more_uptodate():
+                print "Reloading subtree"
+                self.subtree.read_from_file(self.orgfile, 0, 0)
+                if not self.subtree.pickle_dump(self.cache):
+                    print "Error dumping tree to file: %s" % self.cache
+                    return False
+                self.cache_time = time.ctime(os.path.getmtime(self.cache))
+            else:
+                if not self.subtree.pickle_load(self.cache):
+                    print "Error loading tree from file: %s" % self.cache
+                    return False
+        return True
+        
+class OrgWebServer(OrgCache):
+    
+    stylecss = "styles/main.css"
+    
+    def __init__(self, filename):
+        super(OrgWebServer, self).__init__(filename)
+                
     def css(self):
         try:
             inp = open(self.stylecss, 'r')
@@ -106,32 +145,20 @@ class OrgWebServer(object):
         except IOError:
             return None
     css.exposed = True
-    
+
+        
     def index(self, tree_hash):
-        tree = OrgTree()
-        if not os.path.exists(self.cache):
-            tree.read_from_file(self.orgfile, 0, 0)
-            if not tree.pickle_dump(self.cache):
-                print "Error dumping tree to file: %s" % self.cache
-        else:
-            cache_time = time.ctime(os.path.getmtime(self.cache))
-            orgfile_time = time.ctime(os.path.getmtime(self.orgfile))
-            if orgfile_time > cache_time:
-                tree.read_from_file(self.orgfile, 0, 0)
-                if not tree.pickle_dump(self.cache):
-                    print "Error dumping tree to file: %s" % self.cache
-            else:
-                if not tree.pickle_load(self.cache):
-                    print "Error loading tree from file: %s" % self.cache
-                
-        subtree = tree.get_tree_dict()[tree_hash]
+        if self._org_file_more_uptodate():
+            if not self._load_subtree():
+                sys.stderr.write("Error occured while reloading subtree")
+                sys.exit(1)
+        subtree = self.subtree.get_tree_dict()[tree_hash]
         fs = FormatSubtree(subtree)
         result = fs.get_html()
-        tree = None
-        return result
-        
+        return result        
     index.exposed = True
 
+    
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print "Usage: orgweb-server.py </path/to/file.org> <port_number>"
