@@ -43,7 +43,22 @@ class FormatSubtree(object):
             parent = subtree.get_parent()
             out += '<div id="subtree">'
             if subtree.get_header():
-                out += '<h1><div id="header">%s: %s</div></h1>' % (subtree.get_header().get_hash(), subtree.get_header().get_title())
+                if subtree.get_header().has_type():
+                    tree_type = subtree.get_header().get_type()
+                    keyword_classes = {
+                        'TODO' : 'todo',
+                        'DONE' : 'done',
+                        'WAIT' : 'wait'
+                    }
+                    if keyword_classes.has_key(tree_type):
+                        style = keyword_classes[tree_type]
+                    else:
+                        style = "plainType"
+                    out += '<h1 class="treeHeader"><span class="%s">%s</span> <span id="header">%s: %s</span></h1>' % (style, tree_type,
+                                                                                                   subtree.get_header().get_hash(), 
+                                                                                                   subtree.get_header().get_title())
+                else:
+                    out += '<h1><div id="header">%s: %s</div></h1>' % (subtree.get_header().get_hash(), subtree.get_header().get_title())
             out += '<pre>'
             ftb = FormatTreeBody(subtree.get_data())
             out += ftb.get_html()
@@ -54,6 +69,18 @@ class FormatSubtree(object):
                 for child in children:
                     out += '<li>'
                     if child.get_header().has_hash():
+                        if child.get_header().has_type():
+                            tree_type = child.get_header().get_type()
+                            keyword_classes = {
+                                'TODO' : 'todo',
+                                'DONE' : 'done',
+                                'WAIT' : 'wait'
+                                }
+                            if keyword_classes.has_key(tree_type):
+                                style = keyword_classes[tree_type]
+                            else:
+                                style = "plainType"
+                            out += '<span class="%s">%s</span> ' % (style, tree_type)
                         out += '<a href="?tree_hash=%s">%s</a>' % (child.get_header().get_hash(), child.get_header().get_title())
                     else:
                         out += child.get_header().get_title()
@@ -95,13 +122,14 @@ class OrgCache(object):
                 sys.stderr.write("Can't create cache directory!")
                 sys.exit(1)
         self.cache = 'cache/' + self.orgfile.split(os.sep)[-1] + '.cache'
+        if os.path.exists(self.cache):
+            self.cache_time = os.path.getmtime(self.cache)
         if not self._load_subtree():
             sys.stderr.write("Can't load subtree!")
             sys.exit(1)
-        self.cachetime = time.ctime(os.path.getmtime(self.cache))
 
     def _org_file_more_uptodate(self):
-        orgfile_time = time.ctime(os.path.getmtime(self.orgfile))
+        orgfile_time = os.path.getmtime(self.orgfile)
         if orgfile_time > self.cache_time:
             return True
         else:
@@ -114,15 +142,15 @@ class OrgCache(object):
             if not self.subtree.pickle_dump(self.cache):
                 print "Error dumping tree to file: %s" % self.cache
                 return False
-            self.cache_time = time.ctime(os.path.getmtime(self.cache))
+            self.cache_time = os.path.getmtime(self.cache)
         else:
             if self._org_file_more_uptodate():
-                print "Reloading subtree"
+                print "Reloading org-file"
                 self.subtree.read_from_file(self.orgfile, 0, 0)
                 if not self.subtree.pickle_dump(self.cache):
                     print "Error dumping tree to file: %s" % self.cache
                     return False
-                self.cache_time = time.ctime(os.path.getmtime(self.cache))
+                self.cache_time = os.path.getmtime(self.cache)
             else:
                 if not self.subtree.pickle_load(self.cache):
                     print "Error loading tree from file: %s" % self.cache

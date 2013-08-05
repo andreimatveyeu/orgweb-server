@@ -36,3 +36,25 @@ text-align: center;
 
 .sub {  vertical-align: sub } 
 .sup {  vertical-align: super } 
+
+.todo { 
+color: #f00;
+ }
+
+.done { 
+color: #090;
+ }
+
+.wait { 
+color: #00f;
+ }
+
+.plainType { 
+
+ }
+
+h1.treeHeader { 
+
+font-size: 120%;
+
+ }
