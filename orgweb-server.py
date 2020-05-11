@@ -1,10 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import cherrypy
 from pyorgtree.pyorgtree import *
 import sys
 import os.path
 import time
-import cPickle
+import pickle
 
 class FormatTreeBody(object):
     data = None
@@ -50,7 +50,7 @@ class FormatSubtree(object):
                         'DONE' : 'done',
                         'WAIT' : 'wait'
                     }
-                    if keyword_classes.has_key(tree_type):
+                    if tree_type in keyword_classes:
                         style = keyword_classes[tree_type]
                     else:
                         style = "plainType"
@@ -76,7 +76,7 @@ class FormatSubtree(object):
                                 'DONE' : 'done',
                                 'WAIT' : 'wait'
                                 }
-                            if keyword_classes.has_key(tree_type):
+                            if tree_type in keyword_classes:
                                 style = keyword_classes[tree_type]
                             else:
                                 style = "plainType"
@@ -136,24 +136,24 @@ class OrgCache(object):
             return False
         
     def _load_subtree(self):
-        self.subtree = OrgTree()
+        self.subtree = HashedOrgTree()
         if not os.path.exists(self.cache):
             self.subtree.read_from_file(self.orgfile, 0, 0)
             if not self.subtree.pickle_dump(self.cache):
-                print "Error dumping tree to file: %s" % self.cache
+                print(("Error dumping tree to file: %s" % self.cache))
                 return False
             self.cache_time = os.path.getmtime(self.cache)
         else:
             if self._org_file_more_uptodate():
-                print "Reloading org-file"
+                print("Reloading org-file")
                 self.subtree.read_from_file(self.orgfile, 0, 0)
                 if not self.subtree.pickle_dump(self.cache):
-                    print "Error dumping tree to file: %s" % self.cache
+                    print("Error dumping tree to file: %s" % self.cache)
                     return False
                 self.cache_time = os.path.getmtime(self.cache)
             else:
                 if not self.subtree.pickle_load(self.cache):
-                    print "Error loading tree from file: %s" % self.cache
+                    print("Error loading tree from file: %s" % self.cache)
                     return False
         return True
         
@@ -189,7 +189,7 @@ class OrgWebServer(OrgCache):
     
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print "Usage: orgweb-server.py </path/to/file.org> <port_number>"
+        print("Usage: orgweb-server.py </path/to/file.org> <port_number>")
         sys.exit(1)
     cherrypy.config.update({'server.socket_host': 'localhost', 
                             'server.socket_port': int(sys.argv[2]), 
