@@ -191,7 +191,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: orgweb-server.py </path/to/file.org> <port_number>")
         sys.exit(1)
-    cherrypy.config.update({'server.socket_host': 'localhost', 
+    cherrypy.config.update({'server.socket_host': '0.0.0.0', 
                             'server.socket_port': int(sys.argv[2]), 
                             })
     cherrypy.quickstart(OrgWebServer(sys.argv[1]))
