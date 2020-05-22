@@ -40,10 +40,11 @@ class FormatSubtree(object):
         <html>
         <head>
         <link rel="stylesheet" type="text/css" href="/styles/main.css">
+        <title>{title} -- orgweb</title>
         </head>
         <body>
         <div id="wrapper">
-        '''
+        '''.format(title=self.subtree.get_header().get_title())
         subtree = self.subtree
         if subtree:
             parent = subtree.get_parent()
