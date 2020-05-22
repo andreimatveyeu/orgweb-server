@@ -5,11 +5,14 @@ import sys
 import os.path
 import time
 import pickle
+import shutil
 
 class FormatTreeBody(object):
     data = None
+
     def __init__(self, data):
         self.data = data
+
     def get_html(self):
         hash_link_pattern = re.compile(r'(?P<link>h:[a-z0-9]{5})')
         tokens = self.data.split(' ')
@@ -19,15 +22,18 @@ class FormatTreeBody(object):
                 hash_tree = hash_link_pattern.match(token).group('link')
                 if hash_tree:
                     hash_tree = hash_tree[2:]
-                    token = hash_link_pattern.sub('<a href="?tree_hash=%s">%s</a>' % (hash_tree, hash_tree), token)
+                    token = hash_link_pattern.sub(
+                        '<a href="?tree_hash=%s">%s</a>' % (hash_tree, hash_tree), token)
             result += token + " "
         return result
 
+
 class FormatSubtree(object):
     subtree = None
+
     def __init__(self, subtree):
         self.subtree = subtree
-        
+
     def get_html(self):
         out = ""
         out += '''
@@ -46,19 +52,20 @@ class FormatSubtree(object):
                 if subtree.get_header().has_type():
                     tree_type = subtree.get_header().get_type()
                     keyword_classes = {
-                        'TODO' : 'todo',
-                        'DONE' : 'done',
-                        'WAIT' : 'wait'
+                        'TODO': 'todo',
+                        'DONE': 'done',
+                        'WAIT': 'wait'
                     }
                     if tree_type in keyword_classes:
                         style = keyword_classes[tree_type]
                     else:
                         style = "plainType"
                     out += '<h1 class="treeHeader"><span class="%s">%s</span> <span id="header">%s: %s</span></h1>' % (style, tree_type,
-                                                                                                   subtree.get_header().get_hash(), 
-                                                                                                   subtree.get_header().get_title())
+                                                                                                                       subtree.get_header().get_hash(),
+                                                                                                                       subtree.get_header().get_title())
                 else:
-                    out += '<h1><div id="header">%s: %s</div></h1>' % (subtree.get_header().get_hash(), subtree.get_header().get_title())
+                    out += '<h1><div id="header">%s: %s</div></h1>' % (
+                        subtree.get_header().get_hash(), subtree.get_header().get_title())
             out += '<pre>'
             ftb = FormatTreeBody(subtree.get_data())
             out += ftb.get_html()
@@ -72,26 +79,28 @@ class FormatSubtree(object):
                         if child.get_header().has_type():
                             tree_type = child.get_header().get_type()
                             keyword_classes = {
-                                'TODO' : 'todo',
-                                'DONE' : 'done',
-                                'WAIT' : 'wait'
-                                }
+                                'TODO': 'todo',
+                                'DONE': 'done',
+                                'WAIT': 'wait'
+                            }
                             if tree_type in keyword_classes:
                                 style = keyword_classes[tree_type]
                             else:
                                 style = "plainType"
-                            out += '<span class="%s">%s</span> ' % (style, tree_type)
-                        out += '<a href="?tree_hash=%s">%s</a>' % (child.get_header().get_hash(), child.get_header().get_title())
+                            out += '<span class="%s">%s</span> ' % (
+                                style, tree_type)
+                        out += '<a href="?tree_hash=%s">%s</a>' % (
+                            child.get_header().get_hash(), child.get_header().get_title())
                     else:
                         out += child.get_header().get_title()
                     out += '</li>'
                 out += ''
-                
+
             out += '</div><!-- end subtree -->'
             out += '<div id="tree_navigation">'
             if parent:
                 if parent.get_header():
-                    out += '<a href="?tree_hash=%s">%s</a>' % (parent.get_header().get_hash(), 
+                    out += '<a href="?tree_hash=%s">%s</a>' % (parent.get_header().get_hash(),
                                                                parent.get_header().get_title())
                 out += "<br />"
             out += "</div> <!-- end tree_navigation -->"
@@ -105,22 +114,25 @@ class FormatSubtree(object):
         out += '</body>'
         return out
 
+
 class OrgCache(object):
 
     orgfile = None
     cache = None
     cachedir = "cache/"
-    cache_time = None 
+    cache_time = None
     subtree = None
-    
+
     def __init__(self, filename):
         self.orgfile = filename
-        if not os.path.exists(self.cachedir):
-            try:
-                os.mkdir(self.cachedir)
-            except OSError:
-                sys.stderr.write("Can't create cache directory!")
-                sys.exit(1)
+        if os.path.exists(self.cachedir):
+            shutil.rmtree(self.cachedir)
+
+        try:
+            os.mkdir(self.cachedir)
+        except OSError:
+            raise RuntimeError("Can't create cache directory!")
+
         self.cache = 'cache/' + self.orgfile.split(os.sep)[-1] + '.cache'
         if os.path.exists(self.cache):
             self.cache_time = os.path.getmtime(self.cache)
@@ -134,7 +146,7 @@ class OrgCache(object):
             return True
         else:
             return False
-        
+
     def _load_subtree(self):
         self.subtree = HashedOrgTree()
         if not os.path.exists(self.cache):
@@ -156,14 +168,15 @@ class OrgCache(object):
                     print("Error loading tree from file: %s" % self.cache)
                     return False
         return True
-        
+
+
 class OrgWebServer(OrgCache):
-    
+
     stylecss = "styles/main.css"
-    
+
     def __init__(self, filename):
         super(OrgWebServer, self).__init__(filename)
-                
+
     def css(self):
         try:
             inp = open(self.stylecss, 'r')
@@ -174,7 +187,6 @@ class OrgWebServer(OrgCache):
             return None
     css.exposed = True
 
-        
     def index(self, tree_hash):
         if self._org_file_more_uptodate():
             if not self._load_subtree():
@@ -183,15 +195,15 @@ class OrgWebServer(OrgCache):
         subtree = self.subtree.get_tree_dict()[tree_hash]
         fs = FormatSubtree(subtree)
         result = fs.get_html()
-        return result        
+        return result
     index.exposed = True
 
-    
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: orgweb-server.py </path/to/file.org> <port_number>")
         sys.exit(1)
-    cherrypy.config.update({'server.socket_host': 'localhost', 
-                            'server.socket_port': int(sys.argv[2]), 
+    cherrypy.config.update({'server.socket_host': 'localhost',
+                            'server.socket_port': int(sys.argv[2]),
                             })
     cherrypy.quickstart(OrgWebServer(sys.argv[1]))
