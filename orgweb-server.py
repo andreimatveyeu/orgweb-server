@@ -206,4 +206,10 @@ if __name__ == "__main__":
     cherrypy.config.update({'server.socket_host': '0.0.0.0', 
                             'server.socket_port': int(sys.argv[2]), 
                             })
-    cherrypy.quickstart(OrgWebServer(sys.argv[1]))
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    conf = {'/styles': {'tools.staticdir.on': True,
+                        'tools.staticdir.dir': os.path.join(current_dir, 'styles'),
+                        'tools.staticdir.content_types': {'css': 'text/css'}}}
+    cherrypy.quickstart(OrgWebServer(sys.argv[1]), config=conf)
